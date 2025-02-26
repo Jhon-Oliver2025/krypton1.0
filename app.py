@@ -7,7 +7,7 @@ from datetime import datetime
 import threading
 import time
 from notifications import TelegramNotifier
-
+import os
 # Inicialização
 db = SignalDatabase()
 app = Dash(__name__)
@@ -419,4 +419,5 @@ def start_monitoring():
 if __name__ == '__main__':
     print("\n=== Iniciando KryptoN Trading Bot ===")
     monitor = start_monitoring()
-    app.run_server(debug=False)
+    port = int(os.environ.get("PORT", 8050))
+    app.run_server(host='0.0.0.0', port=port, debug=False)
