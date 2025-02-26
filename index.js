@@ -1,4 +1,4 @@
-npm installnode index.js// ... existing code ...
+const express = require('express');
 const app = express();
 const cors = require('cors');
 const path = require('path');
