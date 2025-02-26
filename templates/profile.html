@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KcryptoN - Meu Perfil</title>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Mesmo estilo do index.html */
+    </style>
+</head>
+<body>
+    {% extends "base.html" %}
+    
+    {% block title %}Meu Perfil{% endblock %}
+    
+    {% block content %}
+    <div class="profile-content">
+        <div class="user-info">
+            <h2>Informações do Usuário</h2>
+            <p>Nome: {{ user.username }}</p>
+            <p>Email: {{ user.email }}</p>
+            <p>Membro desde: {{ user.created_at.strftime('%d/%m/%Y') }}</p>
+        </div>
+        <div class="performance">
+            <h2>Meus Resultados</h2>
+        </div>
+    </div>
+    {% endblock %}
+</body>
+</html>

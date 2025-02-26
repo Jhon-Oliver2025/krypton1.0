@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KryptoN Trading Bot</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            background-color: #1a1d24;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .signals-box {
+            flex: 1;
+            background: #262932;
+            margin: 10px;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: #262932;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        .long {
+            color: #4CAF50;
+        }
+        .short {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>KryptoN Trading Bot</h1>
+        <p>O timing perfeito entre tecnologia e oportunidade</p>
+    </div>
+    
+    <div class="container">
+        <div class="signals-box">
+            <h2>Sinais Ativos (24h)</h2>
+            <p>Total: {{ total_signals_4h }}</p>
+            <table>
+                <tr>
+                    <th>Par</th>
+                    <th>Tipo</th>
+                    <th>Preço</th>
+                    <th>Força</th>
+                    <th>Tempo</th>
+                </tr>
+                {% for signal in active_signals_4h %}
+                <tr>
+                    <td>{{ signal.symbol }}</td>
+                    <td class="{{ 'long' if signal.type == 'LONG' else 'short' }}">{{ signal.type }}</td>
+                    <td>{{ signal.price }}</td>
+                    <td>{{ signal.strength }}</td>
+                    <td>{{ signal.timestamp.strftime('%H:%M:%S') }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        
+        <div class="signals-box">
+            <h2>Histórico (7 dias)</h2>
+            <table>
+                <tr>
+                    <th>Par</th>
+                    <th>Tipo</th>
+                    <th>Preço</th>
+                    <th>Data</th>
+                </tr>
+                {% for signal in historical_signals %}
+                <tr>
+                    <td>{{ signal.symbol }}</td>
+                    <td class="{{ 'long' if signal.type == 'LONG' else 'short' }}">{{ signal.type }}</td>
+                    <td>{{ signal.price }}</td>
+                    <td>{{ signal.timestamp.strftime('%d/%m %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</body>
+</html>

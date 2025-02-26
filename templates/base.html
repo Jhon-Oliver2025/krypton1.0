@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KcryptoN - {% block title %}{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="120">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo-section">
+            <h1>KcryptoN</h1>
+        </div>
+        <div class="nav-section">
+            <a href="{{ url_for('home') }}" class="nav-item">Dashboard</a>
+            <a href="{{ url_for('profile') }}" class="nav-item">Minha Conta</a>
+            <a href="#" class="nav-item">Perfil</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
