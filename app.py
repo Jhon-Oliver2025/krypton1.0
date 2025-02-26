@@ -18,6 +18,7 @@ analyzer = TechnicalAnalysis()
 telegram_token = "7690455274:AAHB64l8csWoE5UpV1Pnn9c8chJzd5sZTXQ"
 chat_id = "1249100206"
 notifier = TelegramNotifier(telegram_token, chat_id)
+import pytz  # Adicione esta importação
 
 def get_expected_variation(symbol):
     try:
@@ -213,7 +214,9 @@ app.layout = html.Div(style={
 )
 def update_signals(_):
     try:
-        current_time = datetime.now().strftime('%H:%M:%S')
+        # Ajuste para horário de Brasília
+        tz_BR = pytz.timezone('America/Sao_Paulo')
+        current_time = datetime.now(tz_BR).strftime('%H:%M:%S')
         active_signals = db.get_recent_signals(hours=24)
         print(f"Sinais ativos encontrados: {len(active_signals)}")  # Debug
         print(f"Sinais: {active_signals}")  # Debug

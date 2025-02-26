@@ -86,86 +86,46 @@ class SignalDatabase:
             conn.rollback()
 
     def get_recent_signals(self, hours=24):
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            time_limit = (datetime.now() - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
-            
-            cursor.execute('''
-                SELECT symbol, type, price, timeframe, timestamp
-                FROM signals
-                WHERE timestamp >= ?
-                AND is_historical = 0
-                ORDER BY timestamp DESC
-            ''', (time_limit,))
-            
-            columns = ['symbol', 'type', 'price', 'timeframe', 'timestamp']
-            results = cursor.fetchall()
-            
-            signals = []
-            for row in results:
-                signal = {}
-                for i, column in enumerate(columns):
-                    signal[column] = row[i]
-                signals.append(signal)
-            
-            print(f"Total de sinais encontrados: {len(signals)}")
-            print(f"Sinais recuperados: {signals}")
-            return signals
-            
-        except Exception as e:
-            print(f"Erro ao buscar sinais recentes: {e}")
-            import traceback
-            traceback.print_exc()
-            return []
-    def get_historical_signals(self):
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT symbol, type, price, timeframe, timestamp, days_active
-                FROM signals
-                WHERE is_historical = 1
-                ORDER BY datetime(timestamp) DESC
-            ''')
-            
-            signals = [dict(row) for row in cursor]
-            return signals
-            
-        except Exception as e:
-            print(f"Erro ao buscar histórico: {e}")
-            return []
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # Pega sinais das últimas 24 horas
+        cutoff_time = datetime.now() - timedelta(hours=24)
+        cutoff_str = cutoff_time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        cursor.execute('''
+            SELECT * FROM signals 
+            WHERE timestamp > ? 
+            AND is_historical = FALSE
+            ORDER BY timestamp DESC
+        ''', (cutoff_str,))
+        
+        return [dict(row) for row in cursor.fetchall()]
 
-    def get_statistics(self):
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT 
-                    COUNT(*) as total,
-                    AVG(best_result) as avg_result,
-                    MAX(best_result) as best_result,
-                    SUM(CASE WHEN best_result > 0 THEN 1 ELSE 0 END) as wins
-                FROM signals
-                WHERE completed = TRUE
-            ''')
-            
-            result = cursor.fetchone()
-            total = result['total'] if result['total'] else 0
-            wins = result['wins'] if result['wins'] else 0
-            win_rate = (wins / total * 100) if total > 0 else 0
-            
-            return {
-                'win_rate': win_rate,
-                'avg_result': result['avg_result'] or 0,
-                'best_result': result['best_result'] or 0
-            }
-        except Exception as e:
-            print(f"Erro ao buscar estatísticas: {e}")
-            return {
-                'win_rate': 0,
-                'avg_result': 0,
-                'best_result': 0
-            }
+    def get_historical_signals(self):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # Pega sinais entre 24 horas e 8 dias atrás
+        start_time = datetime.now() - timedelta(days=8)
+        end_time = datetime.now() - timedelta(hours=24)
+        
+        cursor.execute('''
+            SELECT * FROM signals 
+            WHERE timestamp BETWEEN ? AND ?
+            ORDER BY timestamp DESC
+        ''', (start_time.strftime('%Y-%m-%d %H:%M:%S'), 
+              end_time.strftime('%Y-%m-%d %H:%M:%S')))
+        
+        return [dict(row) for row in cursor.fetchall()]
+
+    def cleanup_old_signals(self):
+        """Remove sinais mais antigos que 8 dias"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cutoff_time = datetime.now() - timedelta(days=8)
+        cutoff_str = cutoff_time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        cursor.execute('DELETE FROM signals WHERE timestamp < ?', (cutoff_str,))
+        conn.commit()
