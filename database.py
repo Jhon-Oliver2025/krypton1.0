@@ -34,15 +34,51 @@ class SignalDatabase:
                 monitoring_end_date TEXT NOT NULL,
                 completed BOOLEAN DEFAULT FALSE,
                 days_active INTEGER DEFAULT 0,
-                is_historical BOOLEAN DEFAULT FALSE
+                is_historical BOOLEAN DEFAULT FALSE,
+                current_price FLOAT DEFAULT NULL,
+                current_variation FLOAT DEFAULT NULL,
+                leveraged_result FLOAT DEFAULT NULL,
+                profit_loss FLOAT DEFAULT NULL,
+                last_price_update TEXT DEFAULT NULL
             )
         ''')
         conn.commit()
-
+    def update_signal_prices(self, symbol, current_price):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                UPDATE signals 
+                SET current_price = ?,
+                    current_variation = CASE 
+                        WHEN type = 'LONG' THEN ((? - entry_price) / entry_price * 100)
+                        ELSE ((entry_price - ?) / entry_price * 100)
+                    END,
+                    leveraged_result = CASE 
+                        WHEN type = 'LONG' THEN ((? - entry_price) / entry_price * 100 * 50)
+                        ELSE ((entry_price - ?) / entry_price * 100 * 50)
+                    END,
+                    profit_loss = CASE 
+                        WHEN type = 'LONG' THEN (((? - entry_price) / entry_price) * 1000 * 50)
+                        ELSE (((entry_price - ?) / entry_price) * 1000 * 50)
+                    END,
+                    last_price_update = ?
+                WHERE symbol = ? AND timestamp > ?
+            ''', (
+                current_price, current_price, current_price, 
+                current_price, current_price, current_price, current_price,
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                symbol,
+                (datetime.now() - timedelta(days=8)).strftime('%Y-%m-%d %H:%M:%S')
+            ))
+            conn.commit()
+        except Exception as e:
+            print(f"Erro ao atualizar preços: {e}")
+            conn.rollback()
     def add_signal(self, signal_data):
         conn = self.get_connection()
         cursor = conn.cursor()
-        monitoring_end = datetime.now() + timedelta(days=7)
         
         try:
             if isinstance(signal_data['timestamp'], datetime):
@@ -50,9 +86,6 @@ class SignalDatabase:
             else:
                 timestamp_str = signal_data['timestamp']
             
-            monitoring_end_str = monitoring_end.strftime('%Y-%m-%d %H:%M:%S')
-            
-            # Primeiro, vamos verificar se o sinal já existe
             cursor.execute('''
                 SELECT COUNT(*) FROM signals 
                 WHERE symbol = ? AND type = ? AND timestamp = ?
@@ -62,8 +95,9 @@ class SignalDatabase:
                 cursor.execute('''
                     INSERT INTO signals (
                         symbol, type, price, timeframe, timestamp, 
-                        entry_price, monitoring_end_date, is_historical
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        entry_price, monitoring_end_date, is_historical,
+                        days_active
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     signal_data['symbol'],
                     signal_data['type'],
@@ -71,8 +105,9 @@ class SignalDatabase:
                     signal_data['timeframe'],
                     timestamp_str,
                     signal_data['price'],
-                    monitoring_end_str,
-                    False
+                    (datetime.now() + timedelta(days=8)).strftime('%Y-%m-%d %H:%M:%S'),
+                    False,
+                    0  # Começa com 0 dias
                 ))
                 conn.commit()
                 print(f"Novo sinal salvo com sucesso: {signal_data}")
@@ -106,26 +141,14 @@ class SignalDatabase:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Pega sinais entre 24 horas e 8 dias atrás
+        # Pega todos os sinais dos últimos 8 dias
         start_time = datetime.now() - timedelta(days=8)
-        end_time = datetime.now() - timedelta(hours=24)
         
         cursor.execute('''
             SELECT * FROM signals 
-            WHERE timestamp BETWEEN ? AND ?
+            WHERE timestamp > ?
             ORDER BY timestamp DESC
-        ''', (start_time.strftime('%Y-%m-%d %H:%M:%S'), 
-              end_time.strftime('%Y-%m-%d %H:%M:%S')))
+        ''', (start_time.strftime('%Y-%m-%d %H:%M:%S'),))
         
         return [dict(row) for row in cursor.fetchall()]
-
-    def cleanup_old_signals(self):
-        """Remove sinais mais antigos que 8 dias"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cutoff_time = datetime.now() - timedelta(days=8)
-        cutoff_str = cutoff_time.strftime('%Y-%m-%d %H:%M:%S')
-        
-        cursor.execute('DELETE FROM signals WHERE timestamp < ?', (cutoff_str,))
         conn.commit()
